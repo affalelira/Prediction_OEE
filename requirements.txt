@@ -1,8 +1,9 @@
-joblib==1.2.0
-matplotlib==3.8.0
-numpy==2.2.6
-pandas==2.2.3
-plotly==5.9.0
-Requests==2.32.3
-scikit_learn==1.2.2
-streamlit==1.30.0
+joblib==1.4.2
+matplotlib==3.8.4
+numpy==1.26.4
+pandas==2.2.2
+plotly==6.1.1
+requests==2.32.3
+scikit-learn==1.4.2
+streamlit==1.38.0
+rich==13.7.1
