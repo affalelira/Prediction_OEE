@@ -6,6 +6,12 @@ import requests
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import date, datetime
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import plot_tree
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # -------------------- KONFIGURASI --------------------
 st.set_page_config(page_title="Sistem OEE", layout="wide")
@@ -253,10 +259,20 @@ with tab2:
                 st.plotly_chart(fig_heatmap, use_container_width=True)
 
             col3, col4 = st.columns(2)
+           
             with col3:
-                fig_box = px.box(df_filtered, x="Mesin", y="OEE", color="Mesin",
-                                 title="📦Distribusi OEE per Mesin")
-                st.plotly_chart(fig_box, use_container_width=True)
+                df_quality = df_filtered.groupby('Mesin', as_index=False).agg({
+                    'Good Out': 'sum',
+                    'BS': 'sum'
+                })
+                df_quality['Total'] = df_quality['Good Out'] + df_quality['BS']
+                df_quality['Persen Good'] = df_quality['Good Out'] / df_quality['Total'] * 100
+                df_quality['Persen BS'] = df_quality['BS'] / df_quality['Total'] * 100
+
+                fig_donut = px.pie(df_quality, names='Mesin', values='Persen Good',
+                                title='🍬 Proporsi Produk Bagus per Mesin',
+                                hole=0.4)
+                st.plotly_chart(fig_donut, use_container_width=True)
 
             with col4:
                 status_mesin = df_filtered.groupby(['Mesin', 'STATUS']).size().reset_index(name='Jumlah')
@@ -270,5 +286,68 @@ with tab2:
                                         barmode='stack',
                                         color_discrete_map=color_map)
                 st.plotly_chart(fig_bar_status, use_container_width=True)
+
+            with st.container(): 
+                loss_cols = ['PDT', 'UPDT', 'Sch Loss', 'MPT']
+                loss_sum = df_filtered[loss_cols].sum().sort_values(ascending=False)
+
+                df_pareto = loss_sum.reset_index()
+                df_pareto.columns = ['Loss Type', 'Total Duration']
+                df_pareto['Cumulative'] = df_pareto['Total Duration'].cumsum()
+                df_pareto['Cumulative %'] = df_pareto['Cumulative'] / df_pareto['Total Duration'].sum() * 100
+
+                fig_pareto = go.Figure()
+
+                # Bar chart
+                fig_pareto.add_trace(go.Bar(
+                    x=df_pareto['Loss Type'],
+                    y=df_pareto['Total Duration'],
+                    name='Durasi Kerugian',
+                    marker=dict(color='indianred')
+                ))
+
+                # Garis kumulatif
+                fig_pareto.add_trace(go.Scatter(
+                    x=df_pareto['Loss Type'],
+                    y=df_pareto['Cumulative %'],
+                    name='Garis Pareto (%)',
+                    yaxis='y2',
+                    mode='lines+markers',
+                    line=dict(color='darkblue')
+                ))
+
+                # Garis horizontal di 80%
+                fig_pareto.add_shape(
+                    type='line',
+                    x0=-0.5,
+                    x1=len(df_pareto)-0.5,
+                    y0=80,
+                    y1=80,
+                    yref='y2',
+                    line=dict(color='gray', width=1.5, dash='dash')
+                )
+
+                # Anotasi threshold 80%
+                fig_pareto.add_annotation(
+                    x=0,
+                    y=82,
+                    yref='y2',
+                    text="80% Threshold",
+                    showarrow=False,
+                    font=dict(size=12, color="gray")
+                )
+
+                # Layout
+                fig_pareto.update_layout(
+                    title='📉 Pareto Kerugian Waktu Produksi',
+                    xaxis=dict(title='Kategori Loss'),
+                    yaxis=dict(title='Durasi (menit)'),
+                    yaxis2=dict(title='Akumulasi (%)', overlaying='y', side='right', range=[0, 110]),
+                    legend=dict(x=0.01, y=0.99),
+                    margin=dict(t=40, l=40, r=40, b=40)
+                )
+
+                st.plotly_chart(fig_pareto, use_container_width=True)
+            
     else:
         st.info("Belum ada data yang tersedia.")
