@@ -43,8 +43,8 @@ def add_data(payload):
         return {"status": "error", "error": str(e)}
 
 # -------------------- MODEL & ENCODER --------------------
-model = joblib.load("model_risk_oee.joblib")
-encoder = joblib.load("encoder_mesin.joblib")
+model = joblib.load("model_risk_oee_85%.joblib")
+encoder = joblib.load("encoder_mesin_85%.joblib")
 
 # -------------------- SIDEBAR TABS --------------------
 tab1, tab2 = st.tabs(["📝 Input Prediksi OEE", "📈 Dashboard Business Intelligence"])
@@ -348,6 +348,5 @@ with tab2:
                 )
 
                 st.plotly_chart(fig_pareto, use_container_width=True)
-            
     else:
         st.info("Belum ada data yang tersedia.")
