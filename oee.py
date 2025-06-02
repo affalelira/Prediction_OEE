@@ -261,18 +261,13 @@ with tab2:
             col3, col4 = st.columns(2)
            
             with col3:
-                df_quality = df_filtered.groupby('Mesin', as_index=False).agg({
-                    'Good Out': 'sum',
-                    'BS': 'sum'
-                })
-                df_quality['Total'] = df_quality['Good Out'] + df_quality['BS']
-                df_quality['Persen Good'] = df_quality['Good Out'] / df_quality['Total'] * 100
-                df_quality['Persen BS'] = df_quality['BS'] / df_quality['Total'] * 100
-
-                fig_donut = px.pie(df_quality, names='Mesin', values='Persen Good',
-                                title='🍬 Proporsi Produk Bagus per Mesin',
-                                hole=0.4)
-                st.plotly_chart(fig_donut, use_container_width=True)
+                df_oee_trend = df_filtered.groupby('Tanggal', as_index=False)['OEE'].mean()
+                fig_oee = px.line(df_oee_trend, x='Tanggal', y='OEE',
+                                title='📈 Tren Harian OEE',
+                                markers=True,
+                                labels={'OEE': 'Nilai OEE', 'Tanggal': 'Tanggal Produksi'})
+                fig_oee.update_layout(xaxis=dict(tickformat='%d-%b'), yaxis_title='OEE (%)')
+                st.plotly_chart(fig_oee, use_container_width=True)
 
             with col4:
                 status_mesin = df_filtered.groupby(['Mesin', 'STATUS']).size().reset_index(name='Jumlah')
@@ -287,66 +282,29 @@ with tab2:
                                         color_discrete_map=color_map)
                 st.plotly_chart(fig_bar_status, use_container_width=True)
 
-            with st.container(): 
-                loss_cols = ['PDT', 'UPDT', 'Sch Loss', 'MPT']
-                loss_sum = df_filtered[loss_cols].sum().sort_values(ascending=False)
+            col5, col6= st.columns(2)
 
-                df_pareto = loss_sum.reset_index()
-                df_pareto.columns = ['Loss Type', 'Total Duration']
-                df_pareto['Cumulative'] = df_pareto['Total Duration'].cumsum()
-                df_pareto['Cumulative %'] = df_pareto['Cumulative'] / df_pareto['Total Duration'].sum() * 100
+            with col5:
+                df_qc_trend = df_filtered.groupby('Tanggal', as_index=False)[['Good Out', 'BS']].sum()
+                df_qc_long = df_qc_trend.melt(id_vars='Tanggal', var_name='Jenis', value_name='Jumlah')
 
-                fig_pareto = go.Figure()
+                fig_qc = px.line(df_qc_long, x='Tanggal', y='Jumlah', color='Jenis',
+                                title='📦 Tren Harian Produk Bagus vs Cacat',
+                                markers=True,
+                                labels={'Tanggal': 'Tanggal Produksi', 'Jumlah': 'Jumlah Output'})
+                fig_qc.update_layout(xaxis=dict(tickformat='%d-%b'), yaxis_title='Jumlah')
+                st.plotly_chart(fig_qc, use_container_width=True)
 
-                # Bar chart
-                fig_pareto.add_trace(go.Bar(
-                    x=df_pareto['Loss Type'],
-                    y=df_pareto['Total Duration'],
-                    name='Durasi Kerugian',
-                    marker=dict(color='indianred')
-                ))
+            with col6:
+                df_out = df_filtered.groupby('Tanggal', as_index=False)[['Std Output', 'Act Output']].sum()
+                df_out_long = df_out.melt(id_vars='Tanggal', var_name='Tipe Output', value_name='Jumlah')
 
-                # Garis kumulatif
-                fig_pareto.add_trace(go.Scatter(
-                    x=df_pareto['Loss Type'],
-                    y=df_pareto['Cumulative %'],
-                    name='Garis Pareto (%)',
-                    yaxis='y2',
-                    mode='lines+markers',
-                    line=dict(color='darkblue')
-                ))
+                fig_output = px.line(df_out_long, x='Tanggal', y='Jumlah', color='Tipe Output',
+                                    title='⚙️ Tren Harian Output Aktual vs Standar',
+                                    markers=True,
+                                    labels={'Jumlah': 'Jumlah Output', 'Tanggal': 'Tanggal Produksi'})
+                fig_output.update_layout(xaxis=dict(tickformat='%d-%b'), yaxis_title='Jumlah Output')
+                st.plotly_chart(fig_output, use_container_width=True)
 
-                # Garis horizontal di 80%
-                fig_pareto.add_shape(
-                    type='line',
-                    x0=-0.5,
-                    x1=len(df_pareto)-0.5,
-                    y0=80,
-                    y1=80,
-                    yref='y2',
-                    line=dict(color='gray', width=1.5, dash='dash')
-                )
-
-                # Anotasi threshold 80%
-                fig_pareto.add_annotation(
-                    x=0,
-                    y=82,
-                    yref='y2',
-                    text="80% Threshold",
-                    showarrow=False,
-                    font=dict(size=12, color="gray")
-                )
-
-                # Layout
-                fig_pareto.update_layout(
-                    title='📉 Pareto Kerugian Waktu Produksi',
-                    xaxis=dict(title='Kategori Loss'),
-                    yaxis=dict(title='Durasi (menit)'),
-                    yaxis2=dict(title='Akumulasi (%)', overlaying='y', side='right', range=[0, 110]),
-                    legend=dict(x=0.01, y=0.99),
-                    margin=dict(t=40, l=40, r=40, b=40)
-                )
-
-                st.plotly_chart(fig_pareto, use_container_width=True)
     else:
         st.info("Belum ada data yang tersedia.")
