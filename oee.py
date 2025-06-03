@@ -67,9 +67,9 @@ with tab1:
         with col1:
             tanggal = st.date_input('📅 Tanggal Produksi', value=date.today())
             shift = st.selectbox("🔄 Shift", [1, 2, 3], help="Pilih shift produksi")
-            CT = st.number_input("⏱️ Cycle Time (CT)", min_value=0.0, help="Waktu siklus mesin (dalam detik)")
+            CT = st.number_input("⏱️ Calender Time (CT)", min_value=0.0, help="Waktu siklus mesin (dalam detik)")
             Sch_Loss = st.number_input("📉 Schedule Loss", min_value=0.0)
-            MPT = st.number_input("🧰 MPT (Minor Planned Time)", min_value=0.0)
+            MPT = st.number_input("🧰 MPT (Main Production Time)", min_value=0.0)
             PDT = st.number_input("⚙️ PDT (Planned Downtime)", min_value=0.0)
 
         with col2:
